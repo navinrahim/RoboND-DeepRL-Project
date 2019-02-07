@@ -12,7 +12,7 @@ Run the following commands from terminal to build the project from source:
 
 ``` bash
 $ sudo apt-get install cmake
-$ git clone http://github.com/udacity/RoboND-DeepRL-Project
+$ git clone http://github.com/navinrahim/RoboND-DeepRL-Project
 $ cd RoboND-DeepRL-Project
 $ git submodule update --init
 $ mkdir build
