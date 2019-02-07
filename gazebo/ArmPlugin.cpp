@@ -267,7 +267,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		*/
 		
 		bool collisionCheck = (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0 ) 
-								&& (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0 ) 
+								&& (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0 ) ;
 		
 		if (collisionCheck)
 		{
@@ -334,7 +334,7 @@ bool ArmPlugin::updateAgent()
 	/ TODO - Increase or decrease the joint velocity based on whether the action is even or odd
 	/
 	*/
-	inc_val = action%2 ? 1 : -1;
+	int inc_val = action%2 ? 1 : -1;
 	float velocity = vel[action/2] + actionVelDelta * inc_val ; // TODO - Set joint velocity based on whether action is even or odd.
 
 	if( velocity < VELOCITY_MIN )
@@ -589,7 +589,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
-		bool checkGroundContact = (gripBBox.min.z <= groundContact || gripBBox.max.z <=groundContact)
+		bool checkGroundContact = (gripBBox.min.z <= groundContact || gripBBox.max.z <=groundContact);
 		
 		if(checkGroundContact)
 		{
