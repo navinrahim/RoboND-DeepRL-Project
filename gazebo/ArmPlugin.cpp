@@ -16,7 +16,7 @@
 #define JOINT_MAX	 2.0f
 
 // Turn on velocity based control
-#define VELOCITY_CONTROL false
+#define VELOCITY_CONTROL true
 #define VELOCITY_MIN -0.2f
 #define VELOCITY_MAX  0.2f
 
@@ -49,8 +49,8 @@
 /
 */
 
-#define REWARD_WIN  0.0f
-#define REWARD_LOSS -0.0f
+#define REWARD_WIN  10.0f
+#define REWARD_LOSS -10.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -66,7 +66,7 @@
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG false
+#define DEBUG true
 
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
@@ -137,8 +137,8 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	/ TODO - Subscribe to camera topic
 	/
 	*/
-	
-	//cameraSub = None;
+	gazebo::transport::SubscriberPtr cameraSub = cameraNode->Subscribe("/gazebo/arm_world/camera/link/camera/image", 
+							&ArmPlugin::onCameraMsg, this);
 
 	// Create our node for collision detection
 	collisionNode->Init();
@@ -147,8 +147,8 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	/ TODO - Subscribe to prop collision topic
 	/
 	*/
-	
-	//collisionSub = None;
+	gazebo::transport::SubscriberPtr collisionSub = collisionNode->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", 
+							&ArmPlugin::onCollisionMsg, this);
 
 	// Listen to the update event. This event is broadcast every simulation iteration.
 	this->updateConnection = event::Events::ConnectWorldUpdateBegin(boost::bind(&ArmPlugin::OnUpdate, this, _1));
@@ -166,8 +166,11 @@ bool ArmPlugin::createAgent()
 	/ TODO - Create DQN Agent
 	/
 	*/
-	
-	agent = NULL;
+	dqnAgent* agent = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, 
+                       INPUT_CHANNELS, DOF * 2 , OPTIMIZER, // for each joint, either increase or decrease in join angles, so NUM_OF_ACTIONS = DOF*2
+                       LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE, 
+                       GAMMA, EPS_START, EPS_END, EPS_DECAY,
+                       USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN);
 
 	if( !agent )
 	{
@@ -322,8 +325,8 @@ bool ArmPlugin::updateAgent()
 	/ TODO - Increase or decrease the joint velocity based on whether the action is even or odd
 	/
 	*/
-	
-	float velocity = 0.0; // TODO - Set joint velocity based on whether action is even or odd.
+	inc_val = action%2 ? 1 : -1;
+	float velocity = vel[action/2] + actionVelDelta * inc_val ; // TODO - Set joint velocity based on whether action is even or odd.
 
 	if( velocity < VELOCITY_MIN )
 		velocity = VELOCITY_MIN;
@@ -577,25 +580,24 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
+		bool checkGroundContact = (gripBBox.min.z <= groundContact || gripBBox.max.z <=groundContact)
 		
-		
-		/*if(checkGroundContact)
+		if(checkGroundContact)
 		{
 						
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
 
-			rewardHistory = None;
-			newReward     = None;
-			endEpisode    = None;
+			rewardHistory = REWARD_LOSS;
+			newReward     = true;
+			endEpisode    = true;
 		}
-		*/
 		
 		/*
 		/ TODO - Issue an interim reward based on the distance to the object
 		/
 		*/ 
 		
-		/*
+		
 		if(!checkGroundContact)
 		{
 			const float distGoal = 0; // compute the reward from distance to the goal
@@ -614,7 +616,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			}
 
 			lastGoalDistance = distGoal;
-		} */
+		} 
 	}
 
 	// issue rewards and train DQN
