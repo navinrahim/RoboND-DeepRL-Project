@@ -58,9 +58,9 @@
 #define GRIP_NAME  "gripper_middle"
 
 // Define Collision Parameters
-#define COLLISION_FILTER "ground_plane::link::collision"
-#define COLLISION_ITEM   "tube::tube_link::tube_collision"
-#define COLLISION_POINT  "arm::gripperbase::gripper_link"
+#define COLLISION_FILTER "ground_plane::link::collision"  //to check collision with ground
+#define COLLISION_ITEM   "tube::tube_link::tube_collision" //to check collision with prop item
+#define COLLISION_POINT  "arm::gripperbase::gripper_link" //to check collision of prop with gripper
 
 // Animation Steps
 #define ANIMATION_STEPS 1000
@@ -266,18 +266,27 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		/*
+		bool collisionCheck = (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0 ) 
+								&& (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0 ) 
 		
 		if (collisionCheck)
 		{
-			rewardHistory = None;
+			rewardHistory = REWARD_WIN;
 
-			newReward  = None;
-			endEpisode = None;
+			newReward  = true;
+			endEpisode = true;
 
 			return;
 		}
-		*/
+
+		rewardHistory = REWARD_LOSS;
+
+		newReward  = true;
+		endEpisode = true;
+
+		return;
+
+		
 		
 	}
 }
@@ -600,7 +609,11 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		
 		if(!checkGroundContact)
 		{
-			const float distGoal = 0; // compute the reward from distance to the goal
+			const float distGoal = BoxDistance(gripper->GetBoundingBox(), prop->GetBoundingBox()); // compute the reward from distance to the goal
+
+			const float alpha = 0.6f;
+
+			average_delta  = (average_delta * alpha) + (distGoal * (1 - alpha));
 
 			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
 
