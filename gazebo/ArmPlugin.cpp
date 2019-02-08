@@ -59,9 +59,10 @@
 #define GRIP_NAME  "gripper_middle"
 
 // Define Collision Parameters
-#define COLLISION_FILTER "ground_plane::link::collision"  //to check collision with ground
-#define COLLISION_ITEM   "tube::tube_link::tube_collision" //to check collision with can
-#define COLLISION_POINT  "arm::gripperbase::gripper_link" //to check collision of gripper
+#define COLLISION_FILTER "ground_plane::link::collision"  //collision with ground
+#define COLLISION_ITEM   "tube::tube_link::tube_collision" //collision with can
+#define COLLISION_POINT  "arm::gripperbase::gripper_link" //collision of gripper
+#define COLLISION_ARM "arm::link2::collision2" //collision with arm
 
 // Animation Steps
 #define ANIMATION_STEPS 1000
@@ -267,8 +268,10 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		bool collisionCheck = (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0 ) 
-								&& (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0 ) ;
+		bool collisionCheck = (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_POINT) == 0) || 
+								(strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0) || 
+								(strcmp(contacts->contact(i).collision2().c_str(), COLLISION_ITEM) == 0) || 
+								(strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0) );
 		
 		if (collisionCheck)
 		{
