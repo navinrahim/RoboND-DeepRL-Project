@@ -94,6 +94,8 @@ if [ $BUILD_PYTORCH = "ON" ] || [ $BUILD_PYTORCH = "YES" ] || [ $BUILD_PYTORCH =
 
 	cd ../../
 
+    sudo -H pip install typing
+
 	echo "[Pre-build]  pyTorch setup complete"
 fi
 
