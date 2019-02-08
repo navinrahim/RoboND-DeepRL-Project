@@ -37,8 +37,8 @@
 
 #define INPUT_WIDTH   64
 #define INPUT_HEIGHT  64
-#define OPTIMIZER "RMSprop"
-#define LEARNING_RATE 0.01f
+#define OPTIMIZER "Adam"
+#define LEARNING_RATE 0.001f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 32
 #define USE_LSTM true
@@ -62,13 +62,12 @@
 #define COLLISION_FILTER "ground_plane::link::collision"  //collision with ground
 #define COLLISION_ITEM   "tube::tube_link::tube_collision" //collision with can
 #define COLLISION_POINT  "arm::gripperbase::gripper_link" //collision of gripper
-#define COLLISION_ARM "arm::link2::collision2" //collision with arm
 
 // Animation Steps
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG true
+#define DEBUG false
 
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
@@ -84,7 +83,7 @@ GZ_REGISTER_MODEL_PLUGIN(ArmPlugin)
 // constructor
 ArmPlugin::ArmPlugin() : ModelPlugin(), cameraNode(new gazebo::transport::Node()), collisionNode(new gazebo::transport::Node())
 {
-	printf("ArmPlugin::ArmPlugin()\n");
+	if(DEBUG){printf("ArmPlugin::ArmPlugin()\n");}
 
 	for( uint32_t n=0; n < DOF; n++ )
 		resetPos[n] = 0.0f;
@@ -126,8 +125,10 @@ ArmPlugin::ArmPlugin() : ModelPlugin(), cameraNode(new gazebo::transport::Node()
 // Load
 void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/) 
 {
-	printf("ArmPlugin::Load('%s')\n", _parent->GetName().c_str());
-    printf("debug : %d\n",DEBUG);
+	if(DEBUG){
+		printf("ArmPlugin::Load('%s')\n", _parent->GetName().c_str());
+    	printf("debug : %d\n",DEBUG);
+	}
 
 	// Store the pointer to the model
 	this->model = _parent;
@@ -231,7 +232,7 @@ void ArmPlugin::onCameraMsg(ConstImageStampedPtr &_msg)
 			return;
 		}
 
-		printf("ArmPlugin - allocated camera img buffer %ix%i  %i bpp  %i bytes\n", width, height, bpp, size);
+		if(DEBUG){printf("ArmPlugin - allocated camera img buffer %ix%i  %i bpp  %i bytes\n", width, height, bpp, size);}
 		
 		inputBufferSize = size;
 		inputRawWidth   = width;
@@ -256,6 +257,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 
 	for (unsigned int i = 0; i < contacts->contact_size(); ++i)
 	{
+		// check collision with ground
 		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
 			continue;
 
@@ -268,14 +270,27 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		bool collisionCheck = (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_POINT) == 0) || 
-								(strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0) || 
-								(strcmp(contacts->contact(i).collision2().c_str(), COLLISION_ITEM) == 0) || 
-								(strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0) );
-		
+		// bool collisionCheck = (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_POINT) == 0)  
+		// 						(strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0) || 
+		// 						(strcmp(contacts->contact(i).collision2().c_str(), COLLISION_ITEM) == 0) || 
+		// 						(strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0);
+		// 						COLLISION_ARM
+
+		// Task-1
+		// bool collisionCheck = (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_ITEM) == 0) ||
+		// 						(strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0);
+
+		//Task-2
+		bool collisionCheck = ((strcmp(contacts->contact(i).collision1().c_str(), COLLISION_POINT) == 0) || 
+							 	 (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0))
+								  &&
+							  ((strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0) || 
+							 	 (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_ITEM) == 0))	;
+
 		if (collisionCheck)
 		{
 			rewardHistory = REWARD_WIN;
+			rewardHistory = REWARD_WIN*5;
 
 			newReward  = true;
 			endEpisode = true;
@@ -283,7 +298,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 			return;
 		}
 
-		rewardHistory = REWARD_LOSS;
+		rewardHistory = REWARD_LOSS*-5;
 
 		newReward  = true;
 		endEpisode = true;
@@ -560,7 +575,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 	// episode timeout
 	if( maxEpisodeLength > 0 && episodeFrames > maxEpisodeLength )
 	{
-		printf("ArmPlugin - triggering EOE, episode has exceeded %i frames\n", maxEpisodeLength);
+		if(DEBUG){printf("ArmPlugin - triggering EOE, episode has exceeded %i frames\n", maxEpisodeLength);}
 		rewardHistory = REWARD_LOSS;
 		newReward     = true;
 		endEpisode    = true;
@@ -626,7 +641,9 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 
 				// compute the smoothed moving average of the delta of the distance to the goal
 				avgGoalDelta  = (avgGoalDelta * ALPHA) + (distDelta * (1 - ALPHA));
+				if(DEBUG){std::cout<<"avgGoalDelta = "<<avgGoalDelta<<"\n";}
 				rewardHistory = avgGoalDelta * REWARD_WIN;
+				if(DEBUG){std::cout<<"Reward = "<<rewardHistory<<"\n";}
 				newReward     = true;	
 			}
 
