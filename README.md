@@ -112,11 +112,14 @@ Internally, [`catch`](samples/catch/catch.cpp) is using the [`dqnAgent`](c/dqnAg
 To get started with the project environment, run the following:
 
 ``` bash
-$ cd RoboND-DeepRL-Project/build/aarch64/bin
+$ cd RoboND-DeepRL-Project/build/x86_64/bin
 $ chmod u+x gazebo-arm.sh
 $ ./gazebo-arm.sh
 ```
 
 <img src="https://github.com/dusty-nv/jetson-reinforcement/raw/master/docs/images/gazebo_arm.jpg">
 
-The plugins which hook the learning into the simulation are located in the `gazebo/` directory of the repo. The RL agent and the reward functions are to be defined in [`ArmPlugin.cpp`](gazebo/ArmPlugin.cpp).
+The plugins which hook the learning into the simulation are located in the `gazebo/` directory of the repo. The RL agent and the reward functions are defined in [`ArmPlugin.cpp`](gazebo/ArmPlugin.cpp).
+
+## Writeup
+The writeup can be found [here](./Deep_RL_writeup.pdf).
